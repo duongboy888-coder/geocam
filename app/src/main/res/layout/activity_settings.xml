@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="Thông tin in lên ảnh"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tiêu đề (chữ to, VD: Công trình ABC)">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapSentences" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Dòng tuỳ chỉnh (mỗi dòng 1 mục)"
+            android:helperText="VD:\nNgười chụp: Dương\nKhách hàng: Anh Nam">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etLines"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top"
+                android:inputType="textMultiLine|textCapSentences"
+                android:minLines="3" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Ghi chú">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine|textCapSentences" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Ngày giờ" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Địa chỉ (cần mạng)" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swCoords"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Toạ độ GPS" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swMap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bản đồ nhỏ ở góc (cần mạng)" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swLogo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Logo góc trên bên phải" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginEnd="12dp"
+                android:background="#22888888"
+                android:scaleType="fitCenter" />
+
+            <Button
+                android:id="@+id/btnPickLogo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chọn logo" />
+
+            <Button
+                android:id="@+id/btnRemoveLogo"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Xoá" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:alpha="0.6"
+            android:text="Ảnh lưu ở DCIM/GeoCam. Toạ độ và giờ chụp cũng được ghi vào EXIF. Bản đồ © OpenStreetMap."
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

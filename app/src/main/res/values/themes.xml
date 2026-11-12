@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.GeoCam" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#FFB300</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorSecondary">#FFB300</item>
+    </style>
+</resources>
