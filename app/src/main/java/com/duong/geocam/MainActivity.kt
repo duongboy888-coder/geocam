@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fused: FusedLocationProviderClient
     @Volatile private var lastLoc: Location? = null
     @Volatile private var address: String? = null
+    @Volatile private var street: String? = null
     @Volatile private var mapBmp: Bitmap? = null
     private var infoLoc: Location? = null
     private var infoTime = 0L
@@ -186,6 +187,8 @@ class MainActivity : AppCompatActivity() {
         val time = System.currentTimeMillis()
         val loc = lastLoc
         val info = Watermark.buildInfo(prefs, loc, address, time)
+        val baseName = PhotoSaver.buildName(prefs, time, street)
+        val folder = prefs.folder
         val map = if (prefs.showMap && loc != null) mapBmp else null
         val mirror = lensFacing == CameraSelector.LENS_FACING_FRONT
 
@@ -209,14 +212,14 @@ class MainActivity : AppCompatActivity() {
                     }
                     val logo = if (prefs.showLogo) Prefs.loadLogo(this@MainActivity) else null
                     val out = Watermark.draw(bmp, info, map, logo)
-                    val uri = PhotoSaver.save(this@MainActivity, out, time, loc, info.asText())
+                    val uri = PhotoSaver.save(this@MainActivity, out, time, loc, info.asText(), baseName, folder)
                     val thumbH = 160
                     val thumb = Bitmap.createScaledBitmap(out, thumbH * out.width / out.height, thumbH, true)
                     out.recycle()
                     runOnUiThread {
                         lastUri = uri
                         ivThumb.setImageBitmap(thumb)
-                        toast(if (uri != null) "Đã lưu vào DCIM/GeoCam" else "Lưu ảnh thất bại")
+                        toast(if (uri != null) "Đã lưu vào DCIM/$folder" else "Lưu ảnh thất bại")
                         doneShot()
                     }
                 } catch (e: Throwable) {
@@ -268,7 +271,8 @@ class MainActivity : AppCompatActivity() {
             try {
                 if (wantAddr) {
                     val a = geocode(l)
-                    if (a != null) address = a else if (far) address = null
+                    if (a != null) { address = a.first; street = a.second }
+                    else if (far) { address = null; street = null }
                 }
                 if (wantMap) {
                     val m = MapTiles.fetch(l.latitude, l.longitude)
@@ -281,14 +285,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val plusCode = Regex("^[23456789CFGHJMPQRVWX]{4,8}\\+[23456789CFGHJMPQRVWX]{2,3},?\\s*")
+
+    /** Trả về (địa chỉ đầy đủ, tên đường). */
     @Suppress("DEPRECATION")
-    private fun geocode(l: Location): String? = try {
+    private fun geocode(l: Location): Pair<String, String?>? = try {
         if (!Geocoder.isPresent()) null
         else Geocoder(this, Locale("vi", "VN")).getFromLocation(l.latitude, l.longitude, 1)
             ?.firstOrNull()?.let { a ->
-                (a.getAddressLine(0)
+                val full = (a.getAddressLine(0)
                     ?: listOfNotNull(a.thoroughfare, a.subLocality, a.subAdminArea, a.adminArea).joinToString(", "))
+                    .replace(plusCode, "")
                     .removeSuffix(", Việt Nam").removeSuffix(", Vietnam")
+                full to (a.thoroughfare ?: a.subLocality ?: a.locality)
             }
     } catch (e: Exception) {
         null

@@ -16,9 +16,31 @@ import java.util.Locale
 
 object PhotoSaver {
     /** Lưu JPEG vào DCIM/GeoCam, kèm EXIF ngày giờ + GPS. */
-    fun save(ctx: Context, bmp: Bitmap, time: Long, loc: Location?, comment: String): Uri? {
-        val name = "GeoCam_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(time)) + ".jpg"
-        val tmp = File(ctx.cacheDir, name)
+    /**
+     * Tên file kiểu Timemark:
+     * 20261112_163834, Đặng Châu Tuệ_BKS-50H93384-Dương.jpg
+     */
+    fun buildName(p: Prefs, time: Long, street: String?): String {
+        val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(time))
+        if (!p.nameByInfo) return "GeoCam_$ts"
+        val parts = mutableListOf<String>()
+        if (!street.isNullOrBlank()) parts += street.trim()
+        p.customLines.lines().map { it.trim() }.filter { it.isNotEmpty() }
+            .forEach { parts += it.replace(Regex("\\s*:\\s*"), "-") }
+        var name = ts
+        if (parts.isNotEmpty()) name += ", " + parts.joinToString("_")
+        if (p.title.isNotBlank()) name += "-" + p.title.trim()
+        return clean(name).take(180).trim()
+    }
+
+    fun cleanFolder(s: String) = clean(s).replace("..", "_").trim().ifBlank { "GeoCam" }
+
+    private fun clean(s: String) = s.replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]"), "_")
+
+    fun save(ctx: Context, bmp: Bitmap, time: Long, loc: Location?, comment: String,
+             baseName: String, folder: String): Uri? {
+        val name = "$baseName.jpg"
+        val tmp = File(ctx.cacheDir, "shot_$time.jpg")
         try {
             FileOutputStream(tmp).use { bmp.compress(Bitmap.CompressFormat.JPEG, 92, it) }
             ExifInterface(tmp.absolutePath).apply {
@@ -36,7 +58,7 @@ object PhotoSaver {
             val values = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, name)
                 put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/GeoCam")
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/" + cleanFolder(folder))
                 put(MediaStore.Images.Media.DATE_TAKEN, time)
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }

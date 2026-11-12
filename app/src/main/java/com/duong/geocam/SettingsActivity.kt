@@ -25,6 +25,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var swMap: MaterialSwitch
     private lateinit var swLogo: MaterialSwitch
     private lateinit var ivLogo: ImageView
+    private lateinit var etFolder: EditText
+    private lateinit var swFileName: MaterialSwitch
 
     private val pickLogo = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -53,6 +55,10 @@ class SettingsActivity : AppCompatActivity() {
         swMap = findViewById(R.id.swMap)
         swLogo = findViewById(R.id.swLogo)
         ivLogo = findViewById(R.id.ivLogo)
+        etFolder = findViewById(R.id.etFolder)
+        swFileName = findViewById(R.id.swFileName)
+        etFolder.setText(prefs.folder)
+        swFileName.isChecked = prefs.nameByInfo
 
         etTitle.setText(prefs.title)
         etLines.setText(prefs.customLines)
@@ -88,6 +94,8 @@ class SettingsActivity : AppCompatActivity() {
         prefs.showAddress = swAddress.isChecked
         prefs.showCoords = swCoords.isChecked
         prefs.showMap = swMap.isChecked
+        prefs.folder = PhotoSaver.cleanFolder(etFolder.text.toString())
+        prefs.nameByInfo = swFileName.isChecked
         prefs.showLogo = swLogo.isChecked && Prefs.loadLogo(this) != null
     }
 }

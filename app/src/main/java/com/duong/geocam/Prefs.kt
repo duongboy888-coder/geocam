@@ -23,6 +23,10 @@ class Prefs(ctx: Context) {
     var showCoords: Boolean get() = bool("coords", true); set(v) = putBool("coords", v)
     var showMap: Boolean get() = bool("map", true); set(v) = putBool("map", v)
     var showLogo: Boolean get() = bool("logo", false); set(v) = putBool("logo", v)
+    var nameByInfo: Boolean get() = bool("fname", true); set(v) = putBool("fname", v)
+    var folder: String
+        get() = str("folder").ifBlank { "GeoCam" }
+        set(v) = putStr("folder", v)
 
     companion object {
         private fun logoFile(ctx: Context) = File(ctx.filesDir, "logo.png")

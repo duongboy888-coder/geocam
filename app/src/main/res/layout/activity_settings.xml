@@ -122,8 +122,35 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:text="Lưu ảnh"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Tên thư mục trong DCIM">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etFolder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swFileName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Đặt tên file theo thông tin (ngày giờ, tên đường, dòng tuỳ chỉnh, tiêu đề)" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
             android:alpha="0.6"
-            android:text="Ảnh lưu ở DCIM/GeoCam. Toạ độ và giờ chụp cũng được ghi vào EXIF. Bản đồ © OpenStreetMap."
+            android:text="Toạ độ và giờ chụp cũng được ghi vào EXIF. Bản đồ © OpenStreetMap."
             android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>
