@@ -12,7 +12,15 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.graphics.Color
+import android.view.Gravity
+import android.view.MotionEvent
 import android.view.OrientationEventListener
+import android.view.ScaleGestureDetector
+import android.widget.LinearLayout
+import androidx.camera.core.Camera
+import androidx.camera.core.CameraState
+import androidx.camera.core.FocusMeteringAction
 import android.view.Surface
 import android.view.View
 import android.widget.ImageView
@@ -46,6 +54,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ivMap: ImageView
     private lateinit var ivThumb: ImageView
     private lateinit var btnShot: View
+    private lateinit var btnFlash: TextView
+    private lateinit var zoomRow: LinearLayout
+    private var camera: Camera? = null
+    private var zoomBuiltFor: Camera? = null
+    private val zoomChips = mutableListOf<Pair<Float, TextView>>()
+    private var scaling = false
+    private val flashLabels = arrayOf("⚡ Tắt", "⚡ Tự động", "⚡ Bật", "🔦 Đèn pin")
 
     private val prefs by lazy { Prefs(this) }
     private var imageCapture: ImageCapture? = null
@@ -108,6 +123,13 @@ class MainActivity : AppCompatActivity() {
         ivMap = findViewById(R.id.ivMap)
         ivThumb = findViewById(R.id.ivThumb)
         btnShot = findViewById(R.id.btnShot)
+        btnFlash = findViewById(R.id.btnFlash)
+        zoomRow = findViewById(R.id.zoomRow)
+        btnFlash.setOnClickListener {
+            prefs.flashMode = (prefs.flashMode + 1) % flashLabels.size
+            applyFlash()
+        }
+        setupGestures()
         fused = LocationServices.getFusedLocationProviderClient(this)
 
         btnShot.setOnClickListener { takePhoto() }
@@ -168,16 +190,121 @@ class MainActivity : AppCompatActivity() {
             val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
             val capture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .setFlashMode(ImageCapture.FLASH_MODE_OFF)
                 .build()
             val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
             try {
+                camera?.let {
+                    it.cameraInfo.zoomState.removeObservers(this)
+                    it.cameraInfo.cameraState.removeObservers(this)
+                }
                 provider.unbindAll()
-                provider.bindToLifecycle(this, selector, preview, capture)
+                val cam = provider.bindToLifecycle(this, selector, preview, capture)
+                camera = cam
                 imageCapture = capture
+                zoomBuiltFor = null
+                cam.cameraInfo.zoomState.observe(this) { z ->
+                    if (zoomBuiltFor !== cam) buildZoomChips(cam, z.minZoomRatio, z.maxZoomRatio)
+                    highlightZoom(z.zoomRatio)
+                }
+                // Đèn pin mất khi camera đóng/mở lại -> áp lại mỗi lần camera OPEN
+                cam.cameraInfo.cameraState.observe(this) { st ->
+                    if (st.type == CameraState.Type.OPEN) applyFlash()
+                }
+                applyFlash()
             } catch (e: Exception) {
                 toast("Không mở được camera: ${e.message}")
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    // ---------- Flash ----------
+    private fun applyFlash() {
+        val cam = camera ?: return
+        val ic = imageCapture ?: return
+        val has = cam.cameraInfo.hasFlashUnit()
+        btnFlash.visibility = if (has) View.VISIBLE else View.GONE
+        if (!has) return
+        val m = prefs.flashMode
+        cam.cameraControl.enableTorch(m == 3)
+        ic.flashMode = when (m) {
+            1 -> ImageCapture.FLASH_MODE_AUTO
+            2 -> ImageCapture.FLASH_MODE_ON
+            else -> ImageCapture.FLASH_MODE_OFF
+        }
+        btnFlash.text = flashLabels[m]
+    }
+
+    // ---------- Zoom xa/gần ----------
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    private fun fmtZoom(r: Float): String =
+        if (kotlin.math.abs(r - Math.round(r)) < 0.05f) "${Math.round(r)}x"
+        else String.format(Locale.US, "%.1fx", r)
+
+    private fun buildZoomChips(cam: Camera, min: Float, max: Float) {
+        zoomBuiltFor = cam
+        zoomRow.removeAllViews()
+        zoomChips.clear()
+        val presets = mutableListOf<Float>()
+        if (min < 0.95f) presets += min          // góc rộng (ultra-wide) nếu máy hỗ trợ
+        presets += 1f
+        listOf(2f, 5f, 10f).filter { it <= max + 0.01f }.forEach { presets += it }
+        for (r in presets) {
+            val tv = TextView(this).apply {
+                text = fmtZoom(r)
+                setTextColor(Color.WHITE)
+                textSize = 13f
+                gravity = Gravity.CENTER
+                background = ContextCompat.getDrawable(this@MainActivity, R.drawable.round_btn)
+                setOnClickListener { cam.cameraControl.setZoomRatio(r) }
+            }
+            zoomRow.addView(tv, LinearLayout.LayoutParams(dp(44), dp(44)).apply {
+                marginStart = dp(6); marginEnd = dp(6)
+            })
+            zoomChips += r to tv
+        }
+        zoomRow.visibility = if (max > 1.05f || min < 0.95f) View.VISIBLE else View.GONE
+    }
+
+    private fun highlightZoom(cur: Float) {
+        if (zoomChips.isEmpty()) return
+        val sel = zoomChips.lastOrNull { it.first <= cur + 0.05f } ?: zoomChips.first()
+        for (chip in zoomChips) {
+            val (r, tv) = chip
+            if (chip === sel) { tv.text = fmtZoom(cur); tv.setTextColor(Color.rgb(255, 213, 79)) }
+            else { tv.text = fmtZoom(r); tv.setTextColor(Color.WHITE) }
+        }
+    }
+
+    /** Chụm 2 ngón để zoom, chạm 1 lần để lấy nét. */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupGestures() {
+        val scaleDet = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScaleBegin(d: ScaleGestureDetector): Boolean { scaling = true; return true }
+            override fun onScale(d: ScaleGestureDetector): Boolean {
+                val cam = camera ?: return false
+                val z = cam.cameraInfo.zoomState.value ?: return false
+                cam.cameraControl.setZoomRatio((z.zoomRatio * d.scaleFactor).coerceIn(z.minZoomRatio, z.maxZoomRatio))
+                return true
+            }
+        })
+        previewView.setOnTouchListener { v, e ->
+            scaleDet.onTouchEvent(e)
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> scaling = false
+                MotionEvent.ACTION_UP -> {
+                    if (!scaling) {
+                        camera?.let { cam ->
+                            val pt = previewView.meteringPointFactory.createPoint(e.x, e.y)
+                            cam.cameraControl.startFocusAndMetering(FocusMeteringAction.Builder(pt).build())
+                        }
+                        v.performClick()
+                    }
+                }
+            }
+            true
+        }
     }
 
     private fun takePhoto() {
